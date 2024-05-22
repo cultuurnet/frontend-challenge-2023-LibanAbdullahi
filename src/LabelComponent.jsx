@@ -120,11 +120,12 @@ const LabelComponent = () => {
 
   return (
     <div className='label-component'>
-      <label className='label-explainer'>
-        Met een label voeg je korte, specifieke trefwoorden toe.{" "}
+      <label className='label-explainer' htmlFor='label-input'>
+        Met een label voeg je korte, specifieke trefwoorden toe.
       </label>
       <input
         type='text'
+        id='label-input'
         placeholder='Search or add labels...'
         value={inputValue}
         onChange={(e) => {
