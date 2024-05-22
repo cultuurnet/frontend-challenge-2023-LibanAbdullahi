@@ -2,17 +2,24 @@ import { useState, useEffect } from "react";
 import "./LabelComponent.css";
 
 const LabelComponent = () => {
+  const eventId = import.meta.env.VITE_EVENT_ID;
   const [inputValue, setInputValue] = useState("");
-  const [labelsData, setLabelsData] = useState([]);
   const [filteredSuggestions, setFilteredSuggestions] = useState([]);
-  const [selectedLabels, setSelectedLabels] = useState([null]);
+  const [selectedLabels, setSelectedLabels] = useState([]);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
+      if (inputValue.trim() === "") {
+        setFilteredSuggestions([]);
+        return;
+      }
+
       try {
         const response = await fetch(
-          `http://localhost:3000/api/labels?query=${inputValue}`
+          `${
+            import.meta.env.VITE_BACKEND
+          }/api/labels?query=${inputValue}&limit=6&start=0&suggestion=true`
         );
 
         if (!response.ok) {
@@ -20,8 +27,23 @@ const LabelComponent = () => {
         }
 
         const data = await response.json();
-        setLabelsData(data);
-        handleInputChange(inputValue);
+        // Filter suggestions directly after fetching data
+        if (data && data.member) {
+          const filtered = inputValue.trim()
+            ? data.member
+                .filter(
+                  (label) =>
+                    label.name
+                      .toLowerCase()
+                      .includes(inputValue.toLowerCase()) &&
+                    label.visibility === "visible"
+                )
+                .map((label) => label.name)
+            : [];
+          setFilteredSuggestions(filtered);
+        } else {
+          setFilteredSuggestions([]);
+        }
       } catch (error) {
         setError(error.message);
       }
@@ -30,21 +52,21 @@ const LabelComponent = () => {
     fetchData();
   }, [inputValue]);
 
-  const handleInputChange = (input) => {
-    if (!labelsData || !labelsData.member) {
-      return;
+  // refaching the event details after adding or removing a label
+  const refetchEventDetails = async () => {
+    try {
+      const eventResponse = await fetch(
+        `${import.meta.env.VITE_BACKEND}/api/events/${eventId}`
+      );
+      if (eventResponse.ok) {
+        const eventData = await eventResponse.json();
+        setSelectedLabels(eventData.labels);
+      } else {
+        throw new Error("Failed to fetch updated event details");
+      }
+    } catch (error) {
+      setError(error.message);
     }
-    const filtered = input.trim()
-      ? labelsData.member
-          .filter(
-            (label) =>
-              label.name.toLowerCase().includes(input.toLowerCase()) &&
-              label.visibility === "visible"
-          )
-          .map((label) => label.name)
-      : [];
-
-    setFilteredSuggestions(filtered);
   };
 
   const handleAddLabel = async (label) => {
@@ -53,24 +75,17 @@ const LabelComponent = () => {
     try {
       const labelName = encodeURIComponent(label);
       const response = await fetch(
-        `http://localhost:3000/api/events/:eventId/labels/${labelName}`,
+        `${
+          import.meta.env.VITE_BACKEND
+        }/api/events/${eventId}/labels/${labelName}`,
         {
           method: "PUT",
         }
       );
 
-      if (response.status === 204) {
-        const eventResponse = await fetch(
-          `http://localhost:3000/api/events/:eventId`
-        );
-        if (eventResponse.ok) {
-          const eventData = await eventResponse.json();
-          setSelectedLabels(eventData.labels); // Update selectedLabels based on fetched data
-        } else {
-          throw new Error("Failed to fetch updated event details");
-        }
+      if (response.ok) {
+        refetchEventDetails();
 
-        // Clear the input and suggestions
         setInputValue("");
         setFilteredSuggestions([]);
       } else {
@@ -85,7 +100,9 @@ const LabelComponent = () => {
     try {
       const labelName = encodeURIComponent(label);
       const response = await fetch(
-        `http://localhost:3000/api/events/:eventId/labels/${labelName}`,
+        `${
+          import.meta.env.VITE_BACKEND
+        }/api/events/${eventId}/labels/${labelName}`,
         {
           method: "DELETE",
         }
@@ -95,16 +112,7 @@ const LabelComponent = () => {
         throw new Error("Failed to remove label");
       }
 
-      // Fetch the updated event details to get the remaining labels
-      const eventResponse = await fetch(
-        `http://localhost:3000/api/events/:eventId`
-      );
-      if (eventResponse.ok) {
-        const eventData = await eventResponse.json();
-        setSelectedLabels(eventData.labels);
-      } else {
-        throw new Error("Failed to fetch updated event details");
-      }
+      refetchEventDetails();
     } catch (error) {
       setError(error.message);
     }
@@ -112,16 +120,15 @@ const LabelComponent = () => {
 
   return (
     <div className='label-component'>
-      <h6 className='label-explainer'>
+      <label className='label-explainer'>
         Met een label voeg je korte, specifieke trefwoorden toe.{" "}
-      </h6>
+      </label>
       <input
         type='text'
         placeholder='Search or add labels...'
         value={inputValue}
         onChange={(e) => {
           setInputValue(e.target.value);
-          handleInputChange(e.target.value);
         }}
       />
 
@@ -132,22 +139,20 @@ const LabelComponent = () => {
           </li>
         ))}
 
-        {inputValue.trim() &&
-          !filteredSuggestions.some(
-            (sugg) => sugg.toLowerCase() === inputValue.toLowerCase()
-          ) && <li onClick={() => handleAddLabel(inputValue)}>{inputValue}</li>}
+        {inputValue.trim() && !filteredSuggestions.includes(inputValue) && (
+          <li onClick={() => handleAddLabel(inputValue)}>{inputValue}</li>
+        )}
       </ul>
 
       <div>
         <h3>Selected Labels</h3>
         <ul className='selected-labels'>
-          {selectedLabels &&
-            selectedLabels.map((label) => (
-              <li key={label}>
-                {label}
-                <button onClick={() => handleRemoveLabel(label)}>X</button>
-              </li>
-            ))}
+          {selectedLabels.map((label) => (
+            <li key={label}>
+              {label}
+              <button onClick={() => handleRemoveLabel(label)}>X</button>
+            </li>
+          ))}
         </ul>
       </div>
 

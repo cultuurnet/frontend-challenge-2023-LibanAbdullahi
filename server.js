@@ -6,65 +6,47 @@ import dotenv from "dotenv";
 dotenv.config();
 const app = express();
 const port = 3000;
-const API_BASE_URL = "https://io-test.uitdatabank.be";
+const API_BASE_URL = process.env.API_BASE_URL;
 const USER_ACCESS_TOKEN = process.env.USER_ACCESS_TOKEN;
 const API_KEY = process.env.API_KEY;
-const EVENT_ID = process.env.EVENT_ID;
 
-const fetchData = async () => {
-  try {
-    const response = await axios.get(
-      `${API_BASE_URL}/labels/?limit=6&query=hello&start=0&suggestion=true`,
-      {
-        headers: {
-          Authorization: `Bearer ${USER_ACCESS_TOKEN}`,
-          "X-Api-Key": API_KEY,
-        },
-      }
-    );
-
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching labels:", error);
-    throw error;
-  }
-};
+// Set default headers for Axios
+axios.defaults.headers.common["Authorization"] = `Bearer ${USER_ACCESS_TOKEN}`;
+axios.defaults.headers.common["X-Api-Key"] = API_KEY;
 
 app.use(bodyParser.json());
 
 app.use(cors());
 
-app.get("/api/labels", async (req, res) => {
+app.get("/api/labels", async (req, res, next) => {
   try {
-    const labels = await fetchData(req.query.query);
-    res.json(labels);
+    const query = req.query.query;
+    const response = await axios.get(
+      `${API_BASE_URL}/labels/?limit=6&query=${query}&start=0&suggestion=true`
+    );
+    res.json(response.data);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch labels" });
+    console.error("Error fetching labels:", error);
+    next(error);
   }
 });
-
 // Add a new label
-app.put("/api/events/:eventId/labels/:labelName", async (req, res) => {
+app.put("/api/events/:eventId/labels/:labelName", async (req, res, next) => {
   try {
-    let labelName = req.params.labelName;
-    labelName = decodeURIComponent(labelName); // Decode once
+    const eventId = req.params.eventId;
+    const labelName = req.params.labelName;
+    const decodedLabelName = decodeURIComponent(labelName); // Decode once
 
-    const encodedLabelName = encodeURIComponent(labelName);
+    const encodedLabelName = encodeURIComponent(decodedLabelName);
 
-    const apiUrl = `${API_BASE_URL}/events/${EVENT_ID}/labels/${encodedLabelName}`;
+    const apiUrl = `${API_BASE_URL}/events/${eventId}/labels/${encodedLabelName}`;
 
     const response = await axios.put(
       apiUrl,
-      null, // No request body needed for PUT
-      {
-        headers: {
-          Authorization: `Bearer ${USER_ACCESS_TOKEN}`,
-          "X-Api-Key": API_KEY,
-        },
-      }
+      null // No request body needed for PUT
     );
 
-    if (response.status === 204) {
+    if (response.ok) {
       res.status(204).end(); // No Content. The label has been added successfully.
     } else {
       res.status(response.status).json({ error: "Label addition failed" });
@@ -74,27 +56,23 @@ app.put("/api/events/:eventId/labels/:labelName", async (req, res) => {
       "Error adding label:",
       error.response ? error.response.data : error.message
     );
-    res.status(500).json({ error: "Server error" });
+    next(error);
   }
 });
 
 // Delete label
-app.delete("/api/events/:eventId/labels/:labelName", async (req, res) => {
+app.delete("/api/events/:eventId/labels/:labelName", async (req, res, next) => {
   try {
-    let labelName = req.params.labelName;
-    labelName = decodeURIComponent(labelName);
-    const encodedLabelName = encodeURIComponent(labelName);
+    const eventId = req.params.eventId;
+    const labelName = req.params.labelName;
+    const decodedLabelName = decodeURIComponent(labelName);
+    const encodedLabelName = encodeURIComponent(decodedLabelName);
 
-    const apiUrl = `${API_BASE_URL}/events/${EVENT_ID}/labels/${encodedLabelName}`;
+    const apiUrl = `${API_BASE_URL}/events/${eventId}/labels/${encodedLabelName}`;
 
-    const response = await axios.delete(apiUrl, {
-      headers: {
-        Authorization: `Bearer ${USER_ACCESS_TOKEN}`,
-        "X-Api-Key": API_KEY,
-      },
-    });
+    const response = await axios.delete(apiUrl);
 
-    if (response.status === 204) {
+    if (response.ok) {
       res.status(204).end(); // No Content. The label has been removed successfully.
     } else {
       res.status(response.status).json({ error: "Label removal failed" });
@@ -104,21 +82,17 @@ app.delete("/api/events/:eventId/labels/:labelName", async (req, res) => {
       "Error deleting label:",
       error.response ? error.response.data : error.message
     );
-    res.status(500).json({ error: "Server error" });
+    next(error);
   }
 });
 
 //event details
-app.get("/api/events/:eventId", async (req, res) => {
+app.get("/api/events/:eventId", async (req, res, next) => {
   try {
-    const apiUrl = `${API_BASE_URL}/events/${EVENT_ID}`;
+    const eventId = req.params.eventId;
+    const apiUrl = `${API_BASE_URL}/events/${eventId}`;
 
-    const response = await axios.get(apiUrl, {
-      headers: {
-        Authorization: `Bearer ${USER_ACCESS_TOKEN}`,
-        "X-Api-Key": API_KEY,
-      },
-    });
+    const response = await axios.get(apiUrl);
 
     if (response.status === 200) {
       // Successful fetch of event details
@@ -133,8 +107,16 @@ app.get("/api/events/:eventId", async (req, res) => {
       "Error fetching event details:",
       error.response ? error.response.data : error.message
     );
-    res.status(500).json({ error: "Server error" });
+    next(error);
   }
+});
+
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res
+    .status(500)
+    .json({ error: "An unexpected error occurred. Please try again later." });
 });
 
 app.listen(port, () => {

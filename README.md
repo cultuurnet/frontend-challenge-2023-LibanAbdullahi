@@ -17,7 +17,8 @@
      ```
      USER_ACCESS_TOKEN=your_user_access_token
      API_KEY=your_api_key
-     EVENT_ID=your_event_id
+     VITE_EVENT_ID=your_event_id
+     VITE_BACKEND=Server_base_url
      ```
 
 ### Directory Structure:
