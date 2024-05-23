@@ -18,14 +18,16 @@
      USER_ACCESS_TOKEN=your_user_access_token
      API_KEY=your_api_key
      VITE_EVENT_ID=your_event_id
-     VITE_BACKEND=Server_base_url
+     API_BASE_URL = https://io-test.uitdatabank.be
+     VITE_BACKEND= http://localhost:3000
      ```
 
 ### Directory Structure:
 
 project-root/
-├── LabelComponent.jsx
-├── server.js
+
+├── src
+├── server
 └── .env
 
 ##### Start the Proxy Server:
@@ -52,16 +54,6 @@ project-root/
 - As a user, I am able to add new labels to my event.
 - As a user, I can see which labels have been added to my event.
 - As a user, I can delete labels from my event.
-
-## Additional Notes
-
-- Hardcoded eventId:
-  - For this technical test, the event ID is hardcoded in the proxy server to simplify the setup and focus on the front-end implementation.
-  - This is suitable because we are working with only a single event.
-- Production Environments:
-  - In a production environment with multiple events, it would be more appropriate to:
-    - Pass the event ID dynamically from the frontend
-    - Use a more robust backend solution to manage event data.
 
 # React + Vite
 
