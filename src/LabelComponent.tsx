@@ -1,58 +1,85 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { debounce } from "lodash";
 import "./LabelComponent.css";
 
-const LabelComponent = () => {
-  const eventId = import.meta.env.VITE_EVENT_ID;
-  const [inputValue, setInputValue] = useState("");
-  const [filteredSuggestions, setFilteredSuggestions] = useState([]);
-  const [selectedLabels, setSelectedLabels] = useState([]);
-  const [error, setError] = useState(null);
+interface LabelComponentProps {
+  eventId: string;
+}
+
+const LabelComponent: React.FC<LabelComponentProps> = ({ eventId }) => {
+  const [inputValue, setInputValue] = useState<string>("");
+  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (inputValue.trim() === "") {
-        setFilteredSuggestions([]);
-        return;
-      }
-
+    const fetchEventDetails = async () => {
       try {
-        const response = await fetch(
-          `${
-            import.meta.env.VITE_BACKEND
-          }/api/labels?query=${inputValue}&limit=6&start=0&suggestion=true`
+        const eventResponse = await fetch(
+          `${import.meta.env.VITE_BACKEND}/api/events/${eventId}`
         );
-
-        if (!response.ok) {
-          throw new Error("API request failed");
-        }
-
-        const data = await response.json();
-        // Filter suggestions directly after fetching data
-        if (data && data.member) {
-          const filtered = inputValue.trim()
-            ? data.member
-                .filter(
-                  (label) =>
-                    label.name
-                      .toLowerCase()
-                      .includes(inputValue.toLowerCase()) &&
-                    label.visibility === "visible"
-                )
-                .map((label) => label.name)
-            : [];
-          setFilteredSuggestions(filtered);
+        if (eventResponse.ok) {
+          const eventData = await eventResponse.json();
+          setSelectedLabels(eventData.labels);
         } else {
-          setFilteredSuggestions([]);
+          throw new Error("Failed to fetch event details");
         }
-      } catch (error) {
+      } catch (error: any) {
         setError(error.message);
       }
     };
 
-    fetchData();
-  }, [inputValue]);
+    fetchEventDetails();
+  }, [eventId]);
 
-  // refaching the event details after adding or removing a label
+  const fetchSuggestions = async (query: string) => {
+    if (query.trim() === "") {
+      setFilteredSuggestions([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${
+          import.meta.env.VITE_BACKEND
+        }/api/labels?query=${query}&limit=6&start=0&suggestion=true`
+      );
+
+      if (!response.ok) {
+        throw new Error("API request failed");
+      }
+
+      const data = await response.json();
+      if (data && data.member) {
+        const filtered = data.member
+          .filter(
+            (label: any) =>
+              label.name.toLowerCase().includes(query.toLowerCase()) &&
+              label.visibility === "visible"
+          )
+          .map((label: any) => label.name);
+        setFilteredSuggestions(filtered);
+      } else {
+        setFilteredSuggestions([]);
+      }
+    } catch (error: any) {
+      setError(error.message);
+    }
+  };
+
+  const debouncedFetchSuggestions = useCallback(
+    debounce((query: string) => fetchSuggestions(query), 400),
+    []
+  );
+
+  useEffect(() => {
+    if (inputValue.trim() === "") {
+      setFilteredSuggestions([]);
+      return;
+    }
+    debouncedFetchSuggestions(inputValue);
+  }, [inputValue, debouncedFetchSuggestions]);
+
   const refetchEventDetails = async () => {
     try {
       const eventResponse = await fetch(
@@ -64,12 +91,12 @@ const LabelComponent = () => {
       } else {
         throw new Error("Failed to fetch updated event details");
       }
-    } catch (error) {
+    } catch (error: any) {
       setError(error.message);
     }
   };
 
-  const handleAddLabel = async (label) => {
+  const handleAddLabel = async (label: string) => {
     if (selectedLabels.includes(label) || !label.trim()) return;
 
     try {
@@ -85,18 +112,17 @@ const LabelComponent = () => {
 
       if (response.ok) {
         refetchEventDetails();
-
         setInputValue("");
         setFilteredSuggestions([]);
       } else {
         throw new Error("Failed to add label");
       }
-    } catch (error) {
+    } catch (error: any) {
       setError(error.message);
     }
   };
 
-  const handleRemoveLabel = async (label) => {
+  const handleRemoveLabel = async (label: string) => {
     try {
       const labelName = encodeURIComponent(label);
       const response = await fetch(
@@ -113,7 +139,7 @@ const LabelComponent = () => {
       }
 
       refetchEventDetails();
-    } catch (error) {
+    } catch (error: any) {
       setError(error.message);
     }
   };
@@ -161,4 +187,5 @@ const LabelComponent = () => {
     </div>
   );
 };
+
 export default LabelComponent;
