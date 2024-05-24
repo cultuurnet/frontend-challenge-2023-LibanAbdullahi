@@ -1,0 +1,78 @@
+.label-component {
+  font-family: Arial, sans-serif;
+}
+
+/* Labels Heading */
+.label-component h3 {
+  margin-bottom: 5px;
+}
+
+.label-component .label-explainer {
+  margin-bottom: 10px;
+  font-weight: bold;
+  font-size: 14px;
+  color: gray;
+  text-align: left;
+  margin-left: 10px;
+  margin-top: 10px;
+}
+/* Input Field */
+.label-component input[type="text"] {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+/* Suggestion List */
+.label-component .suggestions {
+  list-style: none;
+  padding: 0;
+  margin: 5px 0;
+}
+
+.label-component .suggestions li {
+  padding: 5px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+}
+
+.label-component .suggestions li:hover {
+  background-color: #f0f0f534;
+}
+
+/* Selected Labels Container */
+.label-component .selected-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+/* Individual Selected Label */
+.label-component .selected-labels li {
+  display: inline-flex;
+  align-items: center;
+  background-color: #f0f0f534;
+  border-radius: 15px;
+  padding: 5px 10px;
+  margin: 5px;
+}
+
+/* Remove Button */
+.label-component .selected-labels button {
+  margin-left: 5px;
+  padding: 3px 6px;
+  background-color: #999;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* Remove Button Hover */
+.label-component .selected-labels button:hover {
+  background-color: #666;
+}
