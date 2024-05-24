@@ -18,6 +18,10 @@ axios.defaults.headers.common["X-Api-Key"] = API_KEY;
 app.use(bodyParser.json());
 app.use(cors());
 
+const isResponseOk = (status: number): boolean => {
+  return status >= 200 && status < 300;
+};
+
 app.get(
   "/api/labels",
   async (req: Request, res: Response, next: NextFunction) => {
@@ -47,7 +51,7 @@ app.put(
 
       const response = await axios.put(apiUrl, null);
 
-      if (response.status >= 200 && response.status < 300) {
+      if (isResponseOk(response.status)) {
         res.status(204).end();
       } else {
         res.status(response.status).json({ error: "Label addition failed" });
@@ -73,7 +77,7 @@ app.delete(
 
       const response = await axios.delete(apiUrl);
 
-      if (response.status >= 200 && response.status < 300) {
+      if (isResponseOk(response.status)) {
         res.status(204).end();
       } else {
         res.status(response.status).json({ error: "Label removal failed" });
@@ -95,7 +99,7 @@ app.get(
 
       const response = await axios.get(apiUrl);
 
-      if (response.status === 200) {
+      if (isResponseOk(response.status)) {
         res.json(response.data);
       } else {
         res

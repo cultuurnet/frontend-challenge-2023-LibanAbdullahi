@@ -11,7 +11,7 @@
 
 3. **Set Up Environment Variables (.env):**
 
-   - Create a file named `.env` **in the root directory** (the same level as server.js).
+   - Create a file named `.env` **in the root directory** (the same level as server and src folders).
    - Add the following lines to the `.env` file, replacing the placeholders with your actual credentials:
 
      ```
